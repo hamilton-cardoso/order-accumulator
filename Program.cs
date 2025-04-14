@@ -13,7 +13,7 @@ var acceptor = new QuickFix.ThreadedSocketAcceptor(app, storeFactory, settings, 
 
 acceptor.Start();
 
-Console.WriteLine("✅ OrderAccumulator FIX server iniciado.");
+Console.WriteLine("OrderAccumulator FIX server iniciado.");
 Console.WriteLine("Aguardando ordens... Pressione ENTER para sair.");
 Console.ReadLine();
 

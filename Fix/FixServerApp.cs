@@ -32,18 +32,16 @@ namespace OrderAccumulator.Fix
 
         public void OnMessage(NewOrderSingle order, SessionID sessionID)
         {
-            var symbol = order.Symbol.getValue();
-            var side = order.Side.getValue();
-            var qty = order.OrderQty.getValue();
-            var price = order.Price.getValue();
+            var symbol = order.Symbol.Value;
+            var side = order.Side.Value;
+            var qty = order.OrderQty.Value;
+            var price = order.Price.Value;
             var value = qty * price;
 
             var currentExposure = _exposures.GetOrAdd(symbol, 0m);
             var newExposure = side == Side.BUY
                 ? currentExposure + value
                 : currentExposure - value;
-
-            Console.WriteLine($"[{symbol}] {qty} @ {price} ({(side == Side.BUY ? "BUY" : "SELL")}) → EXP: {newExposure}");
 
             var execReport = new ExecutionReport(
                 new OrderID(Guid.NewGuid().ToString()),
@@ -57,6 +55,8 @@ namespace OrderAccumulator.Fix
                 new AvgPx(price)
             );
 
+            execReport.SetField(new ClOrdID(order.ClOrdID.Value));
+
             if (Math.Abs(newExposure) <= LIMIT)
             {
                 _exposures[symbol] = newExposure;
@@ -69,6 +69,14 @@ namespace OrderAccumulator.Fix
                 execReport.OrdStatus = new OrdStatus(OrdStatus.REJECTED);
                 execReport.SetField(new Text("Exposição excedida"));
             }
+
+            var statusTexto = execReport.ExecType.Value == ExecType.NEW ? "ACEITA" :
+                  execReport.ExecType.Value == ExecType.REJECTED ? "REJEITADA" : "DESCONHECIDA";
+
+            Console.WriteLine(
+                $"[OrderID: {order.ClOrdID.Value}] " +
+                $"[{symbol}] {qty} @ {price} ({(side == Side.BUY ? "BUY" : "SELL")}) | " +
+                $"EXP: {newExposure} | STATUS: {statusTexto}");
 
             Session.SendToTarget(execReport, sessionID);
         }
